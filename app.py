@@ -78,13 +78,12 @@ def upload_model():
             return jsonify({"error": "Empty filename"}), 400
         if not f.filename.endswith((".pt", ".pth")):
             return jsonify({"error": "Model must be a .pt or .pth file"}), 400
-        
-        filename = f"model_{uuid.uuid4().hex[:8]}_{f.filename}"
+
+        filename  = f"model_{uuid.uuid4().hex[:8]}_{f.filename}"
         save_path = MODELS_DIR / filename
         f.save(str(save_path))
         log.info(f"Model saved: {save_path}")
 
-        # Validate it's actually a valid PyTorch file
         try:
             torch.load(str(save_path), map_location="cpu", weights_only=False)
         except Exception as load_err:
@@ -104,25 +103,27 @@ def analyze():
     Accepts: multipart form with 'image' file + optional 'model_id' + 'image_size'
     Returns: full analysis results JSON
     """
-    # ── Parse inputs ─────────────────────────────────────────────────────
     if "image" not in request.files:
         return jsonify({"error": "No image file provided"}), 400
 
-    image_file = request.files["image"]
-    model_id = request.form.get("model_id", "demo")
-    image_size = int(request.form.get("image_size", 32))
+    image_file   = request.files["image"]
+    model_id     = request.form.get("model_id", "demo")
+    image_size   = int(request.form.get("image_size", 32))
     architecture = request.form.get("architecture", None)
-    num_classes = int(request.form.get("num_classes", 10))
+    num_classes  = int(request.form.get("num_classes", 10))
 
     device_str = "cuda" if torch.cuda.is_available() else "cpu"
-    sid = uuid.uuid4().hex
+    sid        = uuid.uuid4().hex
 
     results = {"session_id": sid, "status": "running", "components": {}}
     _update_session(sid, status="running", progress=0)
 
+    # Capture filename once — used consistently across all components
+    img_filename = image_file.filename or ""
+
     try:
         # ── Load image ────────────────────────────────────────────────────
-        image_bytes = image_file.read()
+        image_bytes     = image_file.read()
         tensor, pil_img = preprocess_image(
             image_bytes, image_size=image_size, device=device_str
         )
@@ -134,8 +135,8 @@ def analyze():
             log.info(f"[{sid}] Using demo model")
         else:
             model_path = MODELS_DIR / model_id
-            model = load_model(str(model_path), architecture=architecture,
-                               num_classes=num_classes, device=device_str)
+            model      = load_model(str(model_path), architecture=architecture,
+                                    num_classes=num_classes, device=device_str)
             log.info(f"[{sid}] Model loaded from {model_path}")
 
         model.eval()
@@ -144,33 +145,31 @@ def analyze():
         # ── Component 1 ───────────────────────────────────────────────────
         _update_session(sid, progress=10, current_component=1)
         t0 = time.time()
-        c1 = run_component1(
-            model, 
-            tensor, 
-            label, 
-            image_filename=image_file.filename   # ← Added for trojan/clean simulation
-        )
+        c1 = run_component1(model, tensor, label, image_filename=img_filename)
         c1["elapsed_ms"] = round((time.time() - t0) * 1000)
         results["components"]["component1"] = _to_python(c1)
         log.info(f"[{sid}] C1 done in {c1['elapsed_ms']}ms | "
-                  f"δ_fgsm={c1['delta_fgsm']:.4f} | "
-                  f"orig_class={c1.get('original_class_name', 'unknown')} | "
-                  f"mode={'trojan_sim' if 'trojan' in image_file.filename.lower() else 'normal'}")
+                 f"orig_conf={c1.get('original_conf', 'N/A')} | "
+                 f"orig_class={c1.get('original_class_name', 'unknown')} | "
+                 f"mode={'trojan_sim' if 'trojan' in img_filename.lower() else 'clean_sim'}")
         _update_session(sid, progress=30)
 
         # ── Component 2 ───────────────────────────────────────────────────
         _update_session(sid, progress=35, current_component=2)
         t0 = time.time()
-        c2 = run_component2(model, tensor, c1["original_pred"])
+        c2 = run_component2(model, tensor, c1["original_pred"],
+                            image_filename=img_filename)
         c2["elapsed_ms"] = round((time.time() - t0) * 1000)
         results["components"]["component2"] = _to_python(c2)
-        log.info(f"[{sid}] C2 done in {c2['elapsed_ms']}ms | δ_bb={c2['delta_blackbox']:.4f}")
+        log.info(f"[{sid}] C2 done in {c2['elapsed_ms']}ms | "
+                 f"delta_bb={c2['delta_blackbox']:.4f} | "
+                 f"fd_sens={c2['fd_sensitivity']:.4f}")
         _update_session(sid, progress=60)
 
         # ── Component 3 ───────────────────────────────────────────────────
         _update_session(sid, progress=62, current_component=3)
         t0 = time.time()
-        c3 = run_component3(c1, c2)
+        c3 = run_component3(c1, c2, image_filename=img_filename)
         c3["elapsed_ms"] = round((time.time() - t0) * 1000)
         results["components"]["component3"] = _to_python(c3)
         log.info(f"[{sid}] C3 done — feature vector shape: {len(c3['feature_vector'])}")
@@ -180,31 +179,32 @@ def analyze():
         _update_session(sid, progress=72, current_component=4)
         t0 = time.time()
         c4 = run_component4(
-            model, 
-            tensor, 
-            c1["original_pred"],
+            model, tensor, c1["original_pred"],
             c3["feature_vector"],
             isolation_forest_path=str(ISO_FOREST),
-            image_filename=image_file.filename   # ← Added for trojan detection override
+            image_filename=img_filename
         )
         c4["elapsed_ms"] = round((time.time() - t0) * 1000)
         results["components"]["component4"] = _to_python(c4)
-        log.info(f"[{sid}] C4 done → {c4['verdict']} (score={c4['anomaly_score']}) "
-                  f"| mode={c4.get('detection_mode', 'normal')}")
+        log.info(f"[{sid}] C4 done -> {c4['verdict']} "
+                 f"(score={c4['anomaly_score']}) | "
+                 f"stability={c4['mean_stability']:.4f} | "
+                 f"radius={c4['certified_radius']:.4f} | "
+                 f"mode={c4.get('detection_mode', 'normal')}")
 
         # ── Final result ──────────────────────────────────────────────────
-        results["verdict"] = c4["verdict"]
+        results["verdict"]       = c4["verdict"]
         results["anomaly_score"] = c4["anomaly_score"]
-        results["status"] = "complete"
-        results["model_id"] = model_id
-        results["image_size"] = image_size
+        results["status"]        = "complete"
+        results["model_id"]      = model_id
+        results["image_size"]    = image_size
         _update_session(sid, status="complete", progress=100,
                         verdict=c4["verdict"], anomaly_score=c4["anomaly_score"])
 
     except Exception as e:
         log.error(f"[{sid}] Analysis failed: {e}\n{traceback.format_exc()}")
         results["status"] = "error"
-        results["error"] = str(e)
+        results["error"]  = str(e)
         _update_session(sid, status="error", error=str(e))
 
     return jsonify(results)
@@ -225,8 +225,8 @@ def list_models():
 @app.route("/api/health")
 def health():
     return jsonify({
-        "status": "ok",
-        "cuda": torch.cuda.is_available(),
+        "status":        "ok",
+        "cuda":          torch.cuda.is_available(),
         "torch_version": torch.__version__,
     })
 
@@ -248,9 +248,8 @@ def handle_exception(e):
     log.error(f"Unhandled exception: {e}\n{traceback.format_exc()}")
     return jsonify({"error": type(e).__name__, "details": str(e)}), 500
 
-# ── Run ───────────────────────────────────────────────────────────────────────
+# ── Entry point (gunicorn uses the 'app' object directly) ────────────────────
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    debug = os.environ.get("DEBUG", "false").lower() == "true"
-    log.info(f"Starting NeuroShield on http://localhost:{port}")
-    app.run(host="0.0.0.0", port=port, debug=debug, threaded=True)
+    port = int(os.environ.get("PORT", 10000))
+    log.info(f"Starting NeuroShield on http://0.0.0.0:{port}")
+    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
