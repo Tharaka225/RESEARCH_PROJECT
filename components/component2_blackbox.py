@@ -18,7 +18,6 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 
 from components.component1_whitebox import run_component1
-from components.component2_blackbox import run_component2
 from components.component3_features import run_component3
 from components.component4_detector import run_component4
 from utils.model_loader import load_model, get_demo_model
