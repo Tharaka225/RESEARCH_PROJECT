@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeuroShield — Trojan Detection System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/main.css" />
+</head>
+<body>
+
+  <!-- Background effects -->
+  <div class="grid-bg"></div>
+  <div class="scanline"></div>
+
+  <!-- ── Header ──────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="logo" onclick="showPage('page-home')" style="cursor:pointer">
+      <span class="logo-bracket">[</span>
+      <span class="logo-text">NEURO<span class="accent">SHIELD</span></span>
+      <span class="logo-bracket">]</span>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-link active" data-page="page-home">HOME</button>
+      <button class="nav-link" data-page="page-scanner">SCANNER</button>
+      <button class="nav-link" data-page="page-contact">CONTACT</button>
+    </nav>
+
+    <div class="header-meta">
+      <span class="meta-tag">v2.4.1</span>
+      <span class="meta-tag status-dot">ONLINE</span>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PAGE 1 — HOME
+  ════════════════════════════════════════════════════════════ -->
+  <div class="page active" id="page-home">
+
+    <!-- Hero -->
+    <section class="hero">
+      <span class="hero-badge">ACADEMIC RESEARCH SYSTEM · NEURAL NETWORK SECURITY</span>
+
+      <h1 class="hero-title">
+        <span class="line1">NEURAL</span><br>
+        <span class="line2">TROJAN<br>DETECTION</span>
+      </h1>
+
+      <p class="hero-sub">
+        NeuroShield is a multi-component adversarial analysis platform that detects
+        backdoor trojans in deep neural network models using white-box perturbation,
+        black-box boundary attacks, and statistical outlier classification.
+      </p>
+
+      <div class="hero-ctas">
+        <button class="btn-primary" id="ctaScanner" style="width:auto;padding:14px 40px">
+          ▶ LAUNCH SCANNER
+        </button>
+        <button class="btn-secondary" id="ctaContact">GET IN TOUCH</button>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat-cell">
+          <span class="stat-num">4</span>
+          <span class="stat-label">DETECTION COMPONENTS</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-num">22</span>
+          <span class="stat-label">FEATURE DIMENSIONS</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-num">6+</span>
+          <span class="stat-label">SUPPORTED ARCHITECTURES</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-label">CAPABILITIES</span>
+        <h2 class="section-title">Four-Component Detection Engine</h2>
+        <p class="section-desc">
+          NeuroShield combines multiple adversarial analysis strategies to identify
+          trojan behaviour with high precision and low false-positive rate.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <span class="feature-num">COMPONENT 01</span>
+          <div class="feature-title">White-Box Perturbation</div>
+          <p class="feature-desc">
+            Applies FGSM and I-FGSM gradient attacks directly on the model to measure
+            perturbation magnitude (δ), confidence drops, and gradient norms — key
+            indicators of backdoor sensitivity.
+          </p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">◎</span>
+          <span class="feature-num">COMPONENT 02</span>
+          <div class="feature-title">Black-Box Boundary Attack</div>
+          <p class="feature-desc">
+            Without gradient access, employs random noise injection and the
+            HopSkipJump boundary-walking algorithm to estimate decision-surface
+            distances and attack success rates.
+          </p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">◈</span>
+          <span class="feature-num">COMPONENT 03</span>
+          <div class="feature-title">22-D Feature Profiling</div>
+          <p class="feature-desc">
+            Aggregates outputs from both attack strategies into a rich 22-dimensional
+            feature vector capturing activation statistics, layer divergence, gradient
+            magnitudes, and boundary characteristics.
+          </p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⬡</span>
+          <span class="feature-num">COMPONENT 04</span>
+          <div class="feature-title">Behaviour Analyser &amp; Outlier Detector</div>
+          <p class="feature-desc">
+            Feeds the feature vector through a Gaussian stability analyser and
+            scikit-learn Isolation Forest classifier to produce a final anomaly score
+            and binary verdict with certified robustness radius.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pipeline -->
+    <section class="pipeline">
+      <div class="pipeline-inner">
+        <div class="section-header">
+          <span class="section-label">WORKFLOW</span>
+          <h2 class="section-title">Analysis Pipeline</h2>
+          <p class="section-desc">
+            Each scan follows a rigorous four-stage pipeline executed in sequence
+            for reproducible, explainable results.
+          </p>
+        </div>
+
+        <div class="pipeline-steps">
+          <div class="pipeline-step">
+            <div class="step-num-circle">01</div>
+            <div class="pipeline-step-body">
+              <div class="pipeline-step-title">Load &amp; Preprocess</div>
+              <p class="pipeline-step-desc">
+                Image is normalised to the configured resolution (32×32, 64×64, or 224×224)
+                and converted to a PyTorch tensor. Model weights are loaded from the selected
+                source (demo SimpleConvNet or user-uploaded .pt / .pth file).
+              </p>
+              <div class="pipeline-tags">
+                <span class="tag">PYTORCH</span>
+                <span class="tag">TORCHVISION</span>
+                <span class="tag">NORMALIZATION</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-step">
+            <div class="step-num-circle">02</div>
+            <div class="pipeline-step-body">
+              <div class="pipeline-step-title">White-Box Adversarial Attack</div>
+              <p class="pipeline-step-desc">
+                With full gradient access, FGSM computes a single-step perturbation
+                δ = ε · sign(∇ₓ L). I-FGSM refines it over multiple iterations.
+                Perturbation magnitude, gradient norms, and prediction confidence are recorded.
+              </p>
+              <div class="pipeline-tags">
+                <span class="tag">FGSM</span>
+                <span class="tag">I-FGSM</span>
+                <span class="tag">GRADIENT ANALYSIS</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-step">
+            <div class="step-num-circle">03</div>
+            <div class="pipeline-step-body">
+              <div class="pipeline-step-title">Black-Box Boundary Estimation</div>
+              <p class="pipeline-step-desc">
+                Without internal model access, HopSkipJump uses binary-search binary
+                decisions to walk the decision boundary and estimate minimal perturbation
+                distance. Attack success rates are measured across noise levels.
+              </p>
+              <div class="pipeline-tags">
+                <span class="tag">HOPSKIPJUMP</span>
+                <span class="tag">RANDOM NOISE</span>
+                <span class="tag">BOUNDARY WALK</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-step">
+            <div class="step-num-circle">04</div>
+            <div class="pipeline-step-body">
+              <div class="pipeline-step-title">Classification &amp; Verdict</div>
+              <p class="pipeline-step-desc">
+                The aggregated 22-D feature vector is scored by a Gaussian stability
+                model (Z-score deviation) and an Isolation Forest trained on clean-model
+                distributions. The combined anomaly score determines the final verdict.
+              </p>
+              <div class="pipeline-tags">
+                <span class="tag">ISOLATION FOREST</span>
+                <span class="tag">GAUSSIAN ANALYSIS</span>
+                <span class="tag">SCIKIT-LEARN</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>NeuroShield Academic Research System</span>
+      <span>Multi-Domain Trojan Detection · PyTorch + scikit-learn</span>
+    </footer>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PAGE 2 — SCANNER
+  ════════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-scanner">
+    <div class="scanner-page">
+      <p class="page-title">TROJAN DETECTION SCANNER</p>
+
+      <div class="main-grid">
+
+        <!-- ── LEFT: Controls ─────────────────────────────── -->
+        <section class="panel panel-controls">
+          <div class="panel-header">
+            <span class="panel-label">01</span>
+            <h2>INPUT CONFIGURATION</h2>
+          </div>
+
+          <!-- Image Upload -->
+          <div class="upload-zone" id="imageDropZone">
+            <input type="file" id="imageInput" accept="image/*" hidden />
+            <div class="upload-content" id="uploadContent">
+              <div class="upload-icon">⬡</div>
+              <p class="upload-primary">DROP IMAGE FILE</p>
+              <p class="upload-sub">PNG · JPG · BMP · TIFF</p>
+              <button class="btn-secondary" onclick="document.getElementById('imageInput').click()">
+                Browse Files
+              </button>
+            </div>
+            <div class="image-preview" id="imagePreview" style="display:none">
+              <img id="previewImg" alt="Preview" />
+              <div class="image-info" id="imageInfo"></div>
+              <button class="btn-ghost btn-sm" id="clearImageBtn">✕ Clear</button>
+            </div>
+          </div>
+
+          <!-- Model Source -->
+          <div class="field-group">
+            <label class="field-label">MODEL SOURCE</label>
+            <div class="tab-row">
+              <button class="tab-btn active" id="tabDemo" onclick="switchTab('demo')">Demo Model</button>
+              <button class="tab-btn" id="tabUpload" onclick="switchTab('upload')">Upload .pt/.pth</button>
+            </div>
+
+            <div id="demoPanel">
+              <div class="info-box">
+                Uses a randomly-initialised SimpleConvNet for demonstration.
+                Upload your own model for meaningful Trojan detection.
+              </div>
+            </div>
+
+            <div id="uploadPanel" style="display:none">
+              <div class="upload-zone mini" id="modelDropZone">
+                <input type="file" id="modelInput" accept=".pt,.pth" hidden />
+                <div id="modelUploadContent">
+                  <p class="upload-sub">Drop .pt or .pth file</p>
+                  <button class="btn-secondary btn-sm"
+                          onclick="document.getElementById('modelInput').click()">
+                    Browse
+                  </button>
+                </div>
+                <div id="modelLoaded" style="display:none;align-items:center;gap:8px">
+                  <span class="status-ok">✓</span>
+                  <span id="modelFilename"></span>
+                </div>
+              </div>
+
+              <div class="field-row">
+                <div class="field-col">
+                  <label class="field-label">Architecture</label>
+                  <select id="architectureSelect" class="input-field">
+                    <option value="">Auto-detect</option>
+                    <option value="resnet18">ResNet-18</option>
+                    <option value="resnet34">ResNet-34</option>
+                    <option value="resnet50">ResNet-50</option>
+                    <option value="vgg16">VGG-16</option>
+                    <option value="densenet121">DenseNet-121</option>
+                    <option value="mobilenet_v2">MobileNet-V2</option>
+                  </select>
+                </div>
+                <div class="field-col">
+                  <label class="field-label">Num Classes</label>
+                  <input type="number" id="numClasses" class="input-field"
+                         value="10" min="2" max="1000" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Advanced -->
+          <details class="advanced-section">
+            <summary class="field-label" style="cursor:pointer">ADVANCED SETTINGS ▸</summary>
+            <div class="field-row" style="margin-top:12px">
+              <div class="field-col">
+                <label class="field-label">Image Size</label>
+                <select id="imageSizeSelect" class="input-field">
+                  <option value="32">32×32 (CIFAR)</option>
+                  <option value="64">64×64</option>
+                  <option value="224">224×224 (ImageNet)</option>
+                </select>
+              </div>
+            </div>
+          </details>
+
+          <button class="btn-primary" id="analyzeBtn" onclick="startAnalysis()" disabled>
+            <span id="analyzeBtnText">▶ RUN ANALYSIS</span>
+          </button>
+        </section>
+
+        <!-- ── RIGHT: Results ─────────────────────────────── -->
+        <section class="panel panel-results">
+
+          <!-- Idle -->
+          <div id="idleState" class="idle-state">
+            <div class="idle-icon">◈</div>
+            <p>Configure inputs and run analysis</p>
+            <p class="idle-sub">SYSTEM AWAITING TARGET</p>
+          </div>
+
+          <!-- Progress -->
+          <div id="progressState" style="display:none">
+            <div class="panel-header">
+              <span class="panel-label">SCAN</span>
+              <h2>ANALYSIS IN PROGRESS</h2>
+              <div class="spinner"></div>
+            </div>
+
+            <div class="component-steps">
+              <div class="step" id="step1">
+                <div class="step-indicator">
+                  <span class="step-num">01</span>
+                  <div class="step-line"></div>
+                </div>
+                <div class="step-content">
+                  <div class="step-title">White-Box Perturbation Analysis</div>
+                  <div class="step-desc">FGSM + I-FGSM gradient attack — measuring δ magnitude</div>
+                  <div class="step-status" id="status1">PENDING</div>
+                </div>
+              </div>
+              <div class="step" id="step2">
+                <div class="step-indicator">
+                  <span class="step-num">02</span>
+                  <div class="step-line"></div>
+                </div>
+                <div class="step-content">
+                  <div class="step-title">Black-Box Perturbation Analysis</div>
+                  <div class="step-desc">Random noise + HopSkipJump boundary attack</div>
+                  <div class="step-status" id="status2">PENDING</div>
+                </div>
+              </div>
+              <div class="step" id="step3">
+                <div class="step-indicator">
+                  <span class="step-num">03</span>
+                  <div class="step-line"></div>
+                </div>
+                <div class="step-content">
+                  <div class="step-title">Feature Profiling</div>
+                  <div class="step-desc">Building 22-dimensional feature vector</div>
+                  <div class="step-status" id="status3">PENDING</div>
+                </div>
+              </div>
+              <div class="step" id="step4">
+                <div class="step-indicator">
+                  <span class="step-num">04</span>
+                </div>
+                <div class="step-content">
+                  <div class="step-title">Behaviour Analyser &amp; Outlier Detector</div>
+                  <div class="step-desc">Gaussian stability + Isolation Forest classification</div>
+                  <div class="step-status" id="status4">PENDING</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="progress-bar-wrap">
+              <div class="progress-bar" id="progressBar"></div>
+              <span class="progress-label" id="progressLabel">0%</span>
+            </div>
+          </div>
+
+          <!-- Results -->
+          <div id="resultsState" style="display:none">
+            <div class="verdict-banner" id="verdictBanner">
+              <div class="verdict-label">THREAT ASSESSMENT</div>
+              <div class="verdict-text" id="verdictText">—</div>
+              <div class="verdict-score-row">
+                <div class="verdict-metric">
+                  <span class="metric-label">ANOMALY SCORE</span>
+                  <span class="metric-val" id="anomalyScore">—</span>
+                </div>
+                <div class="verdict-metric">
+                  <span class="metric-label">STABILITY</span>
+                  <span class="metric-val" id="stabilityVal">—</span>
+                </div>
+                <div class="verdict-metric">
+                  <span class="metric-label">CERTIFIED RADIUS</span>
+                  <span class="metric-val" id="certRadius">—</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="results-tabs">
+              <button class="rtab active" onclick="showResultTab('c1', this)">Component 1</button>
+              <button class="rtab" onclick="showResultTab('c2', this)">Component 2</button>
+              <button class="rtab" onclick="showResultTab('c3', this)">Features</button>
+              <button class="rtab" onclick="showResultTab('c4', this)">Component 4</button>
+            </div>
+
+            <div id="rtab-c1" class="rtab-content active">
+              <div class="metric-grid" id="c1Metrics"></div>
+            </div>
+            <div id="rtab-c2" class="rtab-content">
+              <div class="metric-grid" id="c2Metrics"></div>
+            </div>
+            <div id="rtab-c3" class="rtab-content">
+              <div class="feature-bar-chart" id="featureChart"></div>
+            </div>
+            <div id="rtab-c4" class="rtab-content">
+              <div class="metric-grid" id="c4Metrics"></div>
+            </div>
+
+            <div class="action-row">
+              <button class="btn-secondary" onclick="resetAnalysis()">◀ New Analysis</button>
+              <button class="btn-ghost" onclick="exportResults()">⬇ Export JSON</button>
+            </div>
+          </div>
+
+        </section>
+      </div><!-- /main-grid -->
+    </div><!-- /scanner-page -->
+
+    <footer class="footer">
+      <span>NeuroShield Academic Research System</span>
+      <span>Multi-Domain Trojan Detection · PyTorch + scikit-learn</span>
+    </footer>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PAGE 3 — CONTACT
+  ════════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-contact">
+    <div class="contact-page">
+
+      <div class="section-header">
+        <span class="section-label">GET IN TOUCH</span>
+        <h2 class="section-title">Contact Us</h2>
+        <p class="section-desc">
+          Reach out with research inquiries, collaboration proposals,
+          or questions about NeuroShield's detection methodology.
+        </p>
+      </div>
+
+      <div class="contact-grid">
+
+        <!-- Info -->
+        <div class="contact-info">
+          <div class="contact-info-title">Research Team</div>
+          <p class="contact-info-sub">
+            NeuroShield is an academic initiative focused on advancing
+            adversarial robustness and backdoor detection in neural networks.
+            We welcome collaboration from researchers and institutions.
+          </p>
+
+          <div class="contact-items">
+            <div class="contact-item">
+              <div class="contact-item-icon">✉</div>
+              <div>
+                <span class="contact-item-label">EMAIL</span>
+                <span class="contact-item-val">lkpschaya8000@gmail.com</span>
+              </div>
+            </div>
+            <div class="contact-item">
+              <div class="contact-item-icon">◎</div>
+              <div>
+                <span class="contact-item-label">GITHUB</span>
+                <span class="contact-item-val">https://github.com/Tharaka225/</span>
+              </div>
+            </div>
+            <div class="contact-item">
+              <div class="contact-item-icon">⬡</div>
+              <div>
+                <span class="contact-item-label">INSTITUTION</span>
+                <span class="contact-item-val">SLIIT<br>Computer Systems Engineering</span>
+              </div>
+            </div>
+            <div class="contact-item">
+              <div class="contact-item-icon">◈</div>
+              <div>
+                <span class="contact-item-label">RESPONSE TIME</span>
+                <span class="contact-item-val">Typically within 2–3 business days</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+<script>
+function sendEmail() {
+  const firstName = document.getElementById("firstName").value;
+  const lastName = document.getElementById("lastName").value;
+  const email = document.getElementById("email").value;
+  const inquiry = document.getElementById("inquiry").value;
+  const message = document.getElementById("message").value;
+
+  const subject = `NeuroShield Contact: ${inquiry}`;
+  
+  const body = `
+First Name: ${firstName}
+Last Name: ${lastName}
+Email: ${email}
+Inquiry Type: ${inquiry}
+
+Message:
+${message}
+  `;
+
+  const mailtoLink = `mailto:tharakadissanayaka1000@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  window.location.href = mailtoLink;
+
+  document.getElementById("formFields").style.display = "none";
+  document.getElementById("formSuccess").style.display = "block";
+}
+</script>
+
+      </div><!-- /contact-grid -->
+    </div><!-- /contact-page -->
+
+    <footer class="footer">
+      <span>NeuroShield Academic Research System</span>
+      <span>Multi-Domain Trojan Detection · PyTorch + scikit-learn</span>
+    </footer>
+  </div>
+
+  <script src="/static/js/main.js"></script>
+
+  <!-- Contact form submit wiring (inline, no form tag wrap needed) -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Wire the send button directly
+      const sendBtn = document.querySelector('.form-submit');
+      if (sendBtn) {
+        sendBtn.onclick = () => {
+          document.getElementById('formFields').style.display = 'none';
+          document.getElementById('formSuccess').style.display = 'block';
+        };
+      }
+    });
+  </script>
+</body>
+</html>
