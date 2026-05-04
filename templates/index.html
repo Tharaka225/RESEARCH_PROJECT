@@ -4,283 +4,332 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NeuroShield — Trojan Detection System</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/css/main.css" />
 </head>
 <body>
 
-  <!-- Animated grid background -->
-  <div class="grid-bg"></div>
-  <div class="scanline"></div>
+  <div class="bg-mesh"></div>
+  <div class="grid-overlay"></div>
 
-  <header class="header">
-    <div class="logo">
-      <span class="logo-bracket">[</span>
-      <span class="logo-text">NEURO<span class="accent">SHIELD</span></span>
-      <span class="logo-bracket">]</span>
-    </div>
-    <div class="header-meta">
-      <span class="meta-tag">v2.4.1</span>
-      <span class="meta-tag status-dot" id="systemStatus">SYSTEM ONLINE</span>
-    </div>
-  </header>
+  <div class="app-wrapper">
 
-  <main class="main-grid">
-
-    <!-- ── LEFT PANEL: Controls ─────────────────────────────────────────── -->
-    <section class="panel panel-controls" id="controlPanel">
-      <div class="panel-header">
-        <span class="panel-label">01</span>
-        <h2>INPUT CONFIGURATION</h2>
-      </div>
-
-      <!-- Image Upload -->
-      <div class="upload-zone" id="imageDropZone">
-        <input type="file" id="imageInput" accept="image/*" hidden />
-        <div class="upload-content" id="uploadContent">
-          <div class="upload-icon">⬡</div>
-          <p class="upload-primary">DROP IMAGE FILE</p>
-          <p class="upload-sub">PNG · JPG · BMP · TIFF</p>
-          <button class="btn-secondary" onclick="document.getElementById('imageInput').click()">
-            Browse Files
-          </button>
+    <!-- ── Header ──────────────────────────────────────────────── -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-mark">
+          <div class="logo-mark-inner"></div>
         </div>
-        <div class="image-preview" id="imagePreview" style="display:none">
-          <img id="previewImg" alt="Preview" />
-          <div class="image-info" id="imageInfo"></div>
-          <button class="btn-ghost btn-sm" id="clearImageBtn">✕ Clear</button>
+        <span class="logo-text">NEURO<span class="logo-accent">SHIELD</span></span>
+      </div>
+      <div class="header-right">
+        <span class="version-tag">v2.4.1</span>
+        <div class="status-pill">
+          <div class="status-dot"></div>
+          <span id="systemStatus">SYSTEM ONLINE</span>
         </div>
       </div>
+    </header>
 
-      <!-- Model Selection -->
-      <div class="field-group">
-        <label class="field-label">MODEL SOURCE</label>
-        <div class="tab-row">
-          <button class="tab-btn active" id="tabDemo" onclick="switchTab('demo')">Demo Model</button>
-          <button class="tab-btn" id="tabUpload" onclick="switchTab('upload')">Upload .pt/.pth</button>
-        </div>
+    <!-- ── Main ────────────────────────────────────────────────── -->
+    <div class="main-grid">
 
-        <div id="demoPanel">
-          <div class="info-box">
-            Uses a randomly-initialised SimpleConvNet for demonstration.
-            Upload your own model for meaningful Trojan detection.
+      <!-- ── LEFT: Controls ─────────────────────────────────────── -->
+      <aside class="panel panel-controls">
+
+        <!-- Image Upload -->
+        <div>
+          <div class="section-label">Image Input</div>
+          <div class="upload-zone" id="imageDropZone">
+            <input type="file" id="imageInput" accept="image/*" hidden />
+
+            <div class="upload-inner" id="uploadContent">
+              <div class="upload-icon-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="3"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </div>
+              <p class="upload-primary">Drop image here</p>
+              <p class="upload-sub">PNG · JPG · BMP · TIFF</p>
+              <button class="btn-secondary btn-sm"
+                      onclick="document.getElementById('imageInput').click();event.stopPropagation()">
+                Browse Files
+              </button>
+            </div>
+
+            <div class="image-preview" id="imagePreview" style="display:none">
+              <img id="previewImg" alt="Preview" />
+              <div class="image-meta">
+                <span class="image-name" id="imageName"></span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-3)" id="imageSize"></span>
+                  <button class="btn-ghost btn-sm" id="clearImageBtn">✕</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div id="uploadPanel" style="display:none">
-          <div class="upload-zone mini" id="modelDropZone">
-            <input type="file" id="modelInput" accept=".pt,.pth" hidden />
-            <div id="modelUploadContent">
-              <p class="upload-sub">Drop .pt or .pth file</p>
+        <!-- Model Selection -->
+        <div class="field-group">
+          <div class="section-label">Model Source</div>
+
+          <div class="tab-row">
+            <button class="tab-btn active" id="tabDemo"   onclick="switchTab('demo')">Demo Model</button>
+            <button class="tab-btn"        id="tabUpload" onclick="switchTab('upload')">Upload .pt / .pth</button>
+          </div>
+
+          <div id="demoPanel">
+            <div class="info-box">
+              Runs a randomly-initialised SimpleConvNet for demonstration.
+              Upload your own model for meaningful Trojan detection results.
+            </div>
+          </div>
+
+          <div id="uploadPanel" style="display:none">
+            <div class="upload-zone-mini" id="modelDropZone">
+              <input type="file" id="modelInput" accept=".pt,.pth" hidden />
+              <div id="modelUploadContent">
+                <p class="upload-sub">Drop .pt or .pth file</p>
+              </div>
+              <div id="modelLoaded" style="display:none">
+                <div class="model-loaded-row">
+                  <span>✓</span>
+                  <span id="modelFilename" style="color:var(--text-2)"></span>
+                </div>
+              </div>
               <button class="btn-secondary btn-sm"
-                      onclick="document.getElementById('modelInput').click()">
+                      onclick="document.getElementById('modelInput').click();event.stopPropagation()">
                 Browse
               </button>
             </div>
-            <div id="modelLoaded" style="display:none">
-              <span class="status-ok">✓</span>
-              <span id="modelFilename"></span>
-            </div>
-          </div>
 
-          <div class="field-row">
-            <div class="field-col">
-              <label class="field-label">Architecture</label>
-              <select id="architectureSelect" class="input-field">
-                <option value="">Auto-detect</option>
-                <option value="resnet18">ResNet-18</option>
-                <option value="resnet34">ResNet-34</option>
-                <option value="resnet50">ResNet-50</option>
-                <option value="vgg16">VGG-16</option>
-                <option value="densenet121">DenseNet-121</option>
-                <option value="mobilenet_v2">MobileNet-V2</option>
-              </select>
-            </div>
-            <div class="field-col">
-              <label class="field-label">Num Classes</label>
-              <input type="number" id="numClasses" class="input-field" value="10" min="2" max="1000" />
+            <div class="field-row">
+              <div>
+                <label class="field-label">Architecture</label>
+                <select id="architectureSelect" class="input-field">
+                  <option value="">Auto-detect</option>
+                  <option value="resnet18">ResNet-18</option>
+                  <option value="resnet34">ResNet-34</option>
+                  <option value="resnet50">ResNet-50</option>
+                  <option value="vgg16">VGG-16</option>
+                  <option value="densenet121">DenseNet-121</option>
+                  <option value="mobilenet_v2">MobileNet-V2</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">Num Classes</label>
+                <input type="number" id="numClasses" class="input-field" value="10" min="2" max="1000" />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Advanced Settings -->
-      <details class="advanced-section">
-        <summary class="field-label" style="cursor:pointer">ADVANCED SETTINGS ▸</summary>
-        <div class="field-row" style="margin-top:12px">
-          <div class="field-col">
+        <!-- Advanced -->
+        <details class="advanced-section">
+          <summary>Advanced Settings</summary>
+          <div class="advanced-content">
             <label class="field-label">Image Size</label>
             <select id="imageSizeSelect" class="input-field">
-              <option value="32">32×32 (CIFAR)</option>
-              <option value="64">64×64</option>
-              <option value="224">224×224 (ImageNet)</option>
+              <option value="32">32 × 32 (CIFAR)</option>
+              <option value="64">64 × 64</option>
+              <option value="224">224 × 224 (ImageNet)</option>
             </select>
           </div>
-        </div>
-      </details>
+        </details>
 
-      <!-- Analyse Button -->
-      <button class="btn-primary" id="analyzeBtn" onclick="startAnalysis()" disabled>
-        <span id="analyzeBtnText">▶ RUN ANALYSIS</span>
-      </button>
-    </section>
+        <!-- Analyse -->
+        <button class="btn-primary" id="analyzeBtn" onclick="startAnalysis()" disabled>
+          <span id="analyzeBtnText">▶ &nbsp;RUN ANALYSIS</span>
+        </button>
 
-    <!-- ── RIGHT PANEL: Results ──────────────────────────────────────────── -->
-    <section class="panel panel-results">
+      </aside>
 
-      <!-- Idle State -->
-      <div id="idleState" class="idle-state">
-        <div class="idle-icon">◈</div>
-        <p>Configure inputs and run analysis</p>
-        <p class="idle-sub">System awaiting target</p>
-      </div>
+      <!-- ── RIGHT: Results ──────────────────────────────────────── -->
+      <section class="panel panel-results">
 
-      <!-- Progress State -->
-      <div id="progressState" style="display:none">
-        <div class="panel-header">
-          <span class="panel-label">SCAN</span>
-          <h2>ANALYSIS IN PROGRESS</h2>
-          <div class="spinner"></div>
+        <!-- Idle -->
+        <div id="idleState" class="idle-state">
+          <div class="idle-graphic">
+            <div class="idle-graphic-dot"></div>
+          </div>
+          <div class="idle-label">Awaiting Target</div>
+          <p class="idle-sub">Upload an image and configure inputs to begin</p>
         </div>
 
-        <div class="component-steps">
-          <div class="step" id="step1">
-            <div class="step-indicator">
-              <span class="step-num">01</span>
-              <div class="step-line"></div>
-            </div>
-            <div class="step-content">
-              <div class="step-title">White-Box Perturbation Analysis</div>
-              <div class="step-desc">FGSM + I-FGSM gradient attack — measuring δ magnitude</div>
-              <div class="step-status" id="status1">PENDING</div>
-            </div>
+        <!-- Progress -->
+        <div id="progressState" style="display:none">
+          <div class="progress-header">
+            <div class="progress-title">Scanning Model…</div>
+            <div class="spinner"></div>
           </div>
-          <div class="step" id="step2">
-            <div class="step-indicator">
-              <span class="step-num">02</span>
-              <div class="step-line"></div>
-            </div>
-            <div class="step-content">
-              <div class="step-title">Black-Box Perturbation Analysis</div>
-              <div class="step-desc">Random noise + HopSkipJump boundary attack</div>
-              <div class="step-status" id="status2">PENDING</div>
-            </div>
-          </div>
-          <div class="step" id="step3">
-            <div class="step-indicator">
-              <span class="step-num">03</span>
-              <div class="step-line"></div>
-            </div>
-            <div class="step-content">
-              <div class="step-title">Feature Profiling</div>
-              <div class="step-desc">Building 22-dimensional feature vector</div>
-              <div class="step-status" id="status3">PENDING</div>
-            </div>
-          </div>
-          <div class="step" id="step4">
-            <div class="step-indicator">
-              <span class="step-num">04</span>
-            </div>
-            <div class="step-content">
-              <div class="step-title">Behaviour Analyzer & Outlier Detector</div>
-              <div class="step-desc">Gaussian stability + Isolation Forest classification</div>
-              <div class="step-status" id="status4">PENDING</div>
-            </div>
-          </div>
-        </div>
 
-        <div class="progress-bar-wrap">
-          <div class="progress-bar" id="progressBar"></div>
-          <span class="progress-label" id="progressLabel">0%</span>
-        </div>
-      </div>
+          <div class="steps-list">
 
-      <!-- Results State -->
-      <div id="resultsState" style="display:none">
+            <div class="step-item" id="step1">
+              <div class="step-left">
+                <div class="step-num">01</div>
+                <div class="step-connector"></div>
+              </div>
+              <div class="step-right">
+                <div class="step-title-row">
+                  <span class="step-name">White-Box Perturbation</span>
+                  <span class="step-badge">PENDING</span>
+                </div>
+                <div class="step-desc">FGSM + I-FGSM gradient attacks — measuring δ magnitude</div>
+              </div>
+            </div>
 
-        <!-- Verdict Banner -->
-        <div class="verdict-banner" id="verdictBanner">
-          <div class="verdict-label">THREAT ASSESSMENT</div>
-          <div class="verdict-text" id="verdictText">—</div>
-          <div class="verdict-score-row">
-            <div class="verdict-metric">
-              <span class="metric-label">ANOMALY SCORE</span>
-              <span class="metric-val" id="anomalyScore">—</span>
+            <div class="step-item" id="step2">
+              <div class="step-left">
+                <div class="step-num">02</div>
+                <div class="step-connector"></div>
+              </div>
+              <div class="step-right">
+                <div class="step-title-row">
+                  <span class="step-name">Black-Box Perturbation</span>
+                  <span class="step-badge">PENDING</span>
+                </div>
+                <div class="step-desc">Random noise + HopSkipJump boundary attack</div>
+              </div>
             </div>
-            <div class="verdict-metric">
-              <span class="metric-label">STABILITY</span>
-              <span class="metric-val" id="stabilityVal">—</span>
+
+            <div class="step-item" id="step3">
+              <div class="step-left">
+                <div class="step-num">03</div>
+                <div class="step-connector"></div>
+              </div>
+              <div class="step-right">
+                <div class="step-title-row">
+                  <span class="step-name">Feature Profiling</span>
+                  <span class="step-badge">PENDING</span>
+                </div>
+                <div class="step-desc">Building 25-dimensional feature vector</div>
+              </div>
             </div>
-            <div class="verdict-metric">
-              <span class="metric-label">CERTIFIED RADIUS</span>
-              <span class="metric-val" id="certRadius">—</span>
+
+            <div class="step-item" id="step4">
+              <div class="step-left">
+                <div class="step-num">04</div>
+              </div>
+              <div class="step-right">
+                <div class="step-title-row">
+                  <span class="step-name">Behaviour Analysis & Detection</span>
+                  <span class="step-badge">PENDING</span>
+                </div>
+                <div class="step-desc">Gaussian stability + Isolation Forest classification</div>
+              </div>
             </div>
+
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-fill" id="progressBar" style="width:0%"></div>
+          </div>
+          <div class="progress-meta">
+            <span>Analysis in progress</span>
+            <span id="progressLabel">0%</span>
           </div>
         </div>
 
-        <!-- Component Outputs -->
-        <div class="results-tabs">
-          <button class="rtab active" onclick="showResultTab('c1', this)">Component 1</button>
-          <button class="rtab" onclick="showResultTab('c2', this)">Component 2</button>
-          <button class="rtab" onclick="showResultTab('c3', this)">Features</button>
-          <button class="rtab" onclick="showResultTab('c4', this)">Component 4</button>
+        <!-- Error -->
+        <div id="errorState" style="display:none">
+          <div style="padding:40px;text-align:center">
+            <div style="font-size:2rem;margin-bottom:16px">✕</div>
+            <div style="font-family:var(--font-display);font-size:1.1rem;font-weight:600;color:var(--red);margin-bottom:10px">
+              Analysis Failed
+            </div>
+            <p id="errorMessage" style="font-size:0.82rem;color:var(--text-3);margin-bottom:24px"></p>
+            <button class="btn-secondary" onclick="resetAnalysis()">◀ Try Again</button>
+          </div>
         </div>
 
-        <div id="rtab-c1" class="rtab-content active">
-          <!-- ── NEW: Original Prediction & Noise Test Table ── -->
-          <div class="c1-header-info">
-            <div class="metric-pair">
-              <span class="metric-label">Original Prediction</span>
-              <span class="metric-value big" id="c1OriginalClass">—</span>
+        <!-- Results -->
+        <div id="resultsState" style="display:none" class="fade-up">
+
+          <!-- Verdict -->
+          <div class="verdict-banner" id="verdictBanner">
+            <div class="verdict-eyebrow">THREAT ASSESSMENT</div>
+            <div class="verdict-main">
+              <div class="verdict-text" id="verdictText">—</div>
+              <div class="verdict-score-display">
+                <div class="score-number" id="anomalyScoreDisplay">—</div>
+                <div class="score-label">ANOMALY SCORE</div>
+              </div>
             </div>
-            <div class="metric-pair">
-              <span class="metric-label">Confidence</span>
-              <span class="metric-value" id="c1OriginalConf">—</span>
+            <div class="verdict-metrics-row">
+              <div class="v-metric">
+                <div class="v-metric-label">STABILITY</div>
+                <div class="v-metric-val" id="stabilityVal">—</div>
+              </div>
+              <div class="v-metric">
+                <div class="v-metric-label">CERTIFIED RADIUS</div>
+                <div class="v-metric-val" id="certRadius">—</div>
+              </div>
+              <div class="v-metric">
+                <div class="v-metric-label">SESSION ID</div>
+                <div class="v-metric-val" style="font-size:0.65rem;letter-spacing:0.04em" id="sessionId">—</div>
+              </div>
             </div>
           </div>
 
-          <h4 class="subsection-title">Prediction Stability Under Gaussian Noise</h4>
-          <table class="noise-stability-table">
-            <thead>
-              <tr>
-                <th>Noise Level (σ)</th>
-                <th>Predicted Class</th>
-                <th>Changed?</th>
-              </tr>
-            </thead>
-            <tbody id="c1NoiseTableBody">
-              <!-- Rows will be filled by JavaScript -->
-            </tbody>
-          </table>
+          <!-- Tabs -->
+          <div class="results-tabs">
+            <button class="rtab active" onclick="showResultTab('c1', this)">Component 1</button>
+            <button class="rtab"        onclick="showResultTab('c2', this)">Component 2</button>
+            <button class="rtab"        onclick="showResultTab('c3', this)">Features</button>
+            <button class="rtab"        onclick="showResultTab('c4', this)">Component 4</button>
+          </div>
 
-          <!-- Original metrics grid (gradient, deltas, etc.) -->
-          <div class="metric-grid" id="c1Metrics"></div>
+          <!-- C1 -->
+          <div id="rtab-c1" class="rtab-content active">
+            <div class="prediction-card" id="predictionCard"></div>
+            <div class="conf-bar-wrap">
+              <div class="conf-bar-header">
+                <span>CONFIDENCE</span>
+                <span id="confBarPct">—</span>
+              </div>
+              <div class="conf-bar-track">
+                <div class="conf-bar-fill" id="confBarFill" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="metric-grid" id="c1Metrics"></div>
+          </div>
+
+          <!-- C2 -->
+          <div id="rtab-c2" class="rtab-content">
+            <div class="metric-grid" id="c2Metrics"></div>
+          </div>
+
+          <!-- C3 -->
+          <div id="rtab-c3" class="rtab-content">
+            <div id="featureChart"></div>
+          </div>
+
+          <!-- C4 -->
+          <div id="rtab-c4" class="rtab-content">
+            <div class="metric-grid" id="c4Metrics"></div>
+          </div>
+
+          <!-- Actions -->
+          <div class="action-row">
+            <button class="btn-secondary" onclick="resetAnalysis()">◀ &nbsp;New Analysis</button>
+            <button class="btn-ghost"     onclick="exportResults()">↓ &nbsp;Export JSON</button>
+          </div>
+
         </div>
 
-        <div id="rtab-c2" class="rtab-content">
-          <div class="metric-grid" id="c2Metrics"></div>
-        </div>
-        <div id="rtab-c3" class="rtab-content">
-          <div class="feature-bar-chart" id="featureChart"></div>
-        </div>
-        <div id="rtab-c4" class="rtab-content">
-          <div class="metric-grid" id="c4Metrics"></div>
-        </div>
+      </section>
+    </div>
 
-        <div class="action-row">
-          <button class="btn-secondary" onclick="resetAnalysis()">◀ New Analysis</button>
-          <button class="btn-ghost" onclick="exportResults()">⬇ Export JSON</button>
-        </div>
-      </div>
+    <!-- ── Footer ──────────────────────────────────────────────── -->
+    <footer class="footer">
+      <span class="footer-left">NeuroShield — Academic Research System</span>
+      <span class="footer-right">Multi-Domain Trojan Detection · PyTorch + scikit-learn</span>
+    </footer>
 
-    </section>
-  </main>
-
-  <footer class="footer">
-    <span>NeuroShield Academic Research System</span>
-    <span>Multi-Domain Trojan Detection · PyTorch + scikit-learn</span>
-  </footer>
+  </div>
 
   <script src="/static/js/main.js"></script>
 </body>
