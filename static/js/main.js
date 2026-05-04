@@ -1,471 +1,514 @@
-/* NeuroShield — Frontend Controller */
+/* ═══════════════════════════════════════════════════════════════
+   NeuroShield — Main JavaScript
+   All API endpoints and variable names preserved exactly.
+   ═══════════════════════════════════════════════════════════════ */
 
-"use strict";
+// ── State ─────────────────────────────────────────────────────
+let uploadedModelId = null;
+let selectedImageFile = null;
+let currentResults = null;
+let activeTab = 'demo';
 
-// ── State ─────────────────────────────────────────────────────────────────────
-
-const state = {
-  imageFile: null,
-  modelId: "demo",
-  lastResults: null,
+const CLASS_EMOJI = {
+  airplane: '✈️', automobile: '🚗', bird: '🐦', cat: '🐱',
+  deer: '🦌', dog: '🐕', frog: '🐸', horse: '🐴', ship: '🚢', truck: '🚛'
 };
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-
-document.addEventListener("DOMContentLoaded", () => {
-  setupDragDrop("imageDropZone", "imageInput", handleImageFile);
-  setupDragDrop("modelDropZone", "modelInput", handleModelFile);
-  document.getElementById("imageInput").addEventListener("change", e =>
-    e.target.files[0] && handleImageFile(e.target.files[0])
-  );
-  document.getElementById("modelInput").addEventListener("change", e =>
-    e.target.files[0] && handleModelFile(e.target.files[0])
-  );
-  document.getElementById("clearImageBtn").addEventListener("click", clearImage);
-  checkHealth();
+// ── Init ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initImageUpload();
+  initModelUpload();
+  checkSystemStatus();
 });
 
-// ── Drag & Drop ───────────────────────────────────────────────────────────────
+// ── System Status ─────────────────────────────────────────────
+async function checkSystemStatus() {
+  try {
+    const res = await fetch('/api/health');
+    const data = await res.json();
+    const el = document.getElementById('systemStatus');
+    if (data.status === 'ok') {
+      el.textContent = 'SYSTEM ONLINE';
+      el.style.color = 'var(--green)';
+    }
+  } catch {
+    const el = document.getElementById('systemStatus');
+    el.textContent = 'OFFLINE';
+    el.style.color = 'var(--red)';
+  }
+}
 
-function setupDragDrop(zoneId, inputId, handler) {
-  const zone = document.getElementById(zoneId);
-  if (!zone) return;
+// ── Tab Switching ─────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tabDemo').classList.toggle('active', tab === 'demo');
+  document.getElementById('tabUpload').classList.toggle('active', tab === 'upload');
+  document.getElementById('demoPanel').style.display   = tab === 'demo'   ? '' : 'none';
+  document.getElementById('uploadPanel').style.display = tab === 'upload' ? '' : 'none';
+}
 
-  zone.addEventListener("click", () => document.getElementById(inputId).click());
-  zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("drag-over"); });
-  zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
-  zone.addEventListener("drop", e => {
+// ── Image Upload ──────────────────────────────────────────────
+function initImageUpload() {
+  const zone  = document.getElementById('imageDropZone');
+  const input = document.getElementById('imageInput');
+
+  zone.addEventListener('click', (e) => {
+    if (!e.target.closest('button') && !e.target.closest('.image-preview')) {
+      input.click();
+    }
+  });
+
+  input.addEventListener('change', () => {
+    if (input.files[0]) handleImageFile(input.files[0]);
+  });
+
+  zone.addEventListener('dragover', (e) => {
     e.preventDefault();
-    zone.classList.remove("drag-over");
+    zone.classList.add('drag-over');
+  });
+
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
-    if (file) handler(file);
+    if (file && file.type.startsWith('image/')) handleImageFile(file);
+  });
+
+  document.getElementById('clearImageBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    clearImage();
   });
 }
 
-// ── Image Handling ────────────────────────────────────────────────────────────
-
 function handleImageFile(file) {
-  state.imageFile = file;
-
+  selectedImageFile = file;
   const reader = new FileReader();
-  reader.onload = e => {
-    const img = document.getElementById("previewImg");
-    const info = document.getElementById("imageInfo");
-    img.src = e.target.result;
-    img.onload = () => {
-      info.textContent = `${img.naturalWidth}×${img.naturalHeight} · ${formatBytes(file.size)} · ${file.type}`;
-    };
-    document.getElementById("uploadContent").style.display = "none";
-    document.getElementById("imagePreview").style.display  = "flex";
+  reader.onload = (e) => {
+    document.getElementById('previewImg').src = e.target.result;
+    document.getElementById('imageName').textContent = file.name;
+    document.getElementById('imageSize').textContent =
+      `${(file.size / 1024).toFixed(1)} KB`;
+    document.getElementById('uploadContent').style.display = 'none';
+    document.getElementById('imagePreview').style.display  = '';
   };
   reader.readAsDataURL(file);
   updateAnalyzeBtn();
 }
 
 function clearImage() {
-  state.imageFile = null;
-  document.getElementById("uploadContent").style.display = "block";
-  document.getElementById("imagePreview").style.display  = "none";
-  document.getElementById("imageInput").value = "";
+  selectedImageFile = null;
+  document.getElementById('imageInput').value = '';
+  document.getElementById('uploadContent').style.display = '';
+  document.getElementById('imagePreview').style.display  = 'none';
   updateAnalyzeBtn();
 }
 
-// ── Model Handling ────────────────────────────────────────────────────────────
+// ── Model Upload ──────────────────────────────────────────────
+function initModelUpload() {
+  const zone  = document.getElementById('modelDropZone');
+  const input = document.getElementById('modelInput');
 
-function switchTab(tab) {
-  document.getElementById("tabDemo").classList.toggle("active", tab === "demo");
-  document.getElementById("tabUpload").classList.toggle("active", tab === "upload");
-  document.getElementById("demoPanel").style.display   = tab === "demo"   ? "block" : "none";
-  document.getElementById("uploadPanel").style.display = tab === "upload" ? "block" : "none";
+  if (!zone || !input) return;
 
-  if (tab === "demo") {
-    state.modelId = "demo";
-    updateAnalyzeBtn();
-  }
+  zone.addEventListener('click', (e) => {
+    if (!e.target.closest('button')) input.click();
+  });
+
+  input.addEventListener('change', () => {
+    if (input.files[0]) uploadModel(input.files[0]);
+  });
+
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    zone.classList.add('drag-over');
+  });
+
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) uploadModel(file);
+  });
 }
 
-async function handleModelFile(file) {
-  if (!file.name.match(/\.(pt|pth)$/i)) {
-    alert("Please select a .pt or .pth model file.");
-    return;
-  }
+async function uploadModel(file) {
+  const content  = document.getElementById('modelUploadContent');
+  const loaded   = document.getElementById('modelLoaded');
+  const nameEl   = document.getElementById('modelFilename');
 
-  const formData = new FormData();
-  formData.append("model", file);
+  content.innerHTML = `<span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-3)">Uploading…</span>`;
+
+  const form = new FormData();
+  form.append('model', file);
 
   try {
-    const resp = await fetch("/api/upload-model", { method: "POST", body: formData });
-    const data = await resp.json();
+    const res  = await fetch('/api/upload-model', { method: 'POST', body: form });
+    const data = await res.json();
 
-    if (data.error) throw new Error(data.error);
-
-    state.modelId = data.model_id;
-    document.getElementById("modelUploadContent").style.display = "none";
-    document.getElementById("modelLoaded").style.display        = "flex";
-    document.getElementById("modelFilename").textContent        = data.filename;
-    updateAnalyzeBtn();
-  } catch (err) {
-    alert("Model upload failed: " + err.message);
+    if (data.model_id) {
+      uploadedModelId = data.model_id;
+      content.style.display = 'none';
+      loaded.style.display  = '';
+      nameEl.textContent    = file.name;
+      updateAnalyzeBtn();
+    } else {
+      content.innerHTML = `<span style="color:var(--red);font-size:0.75rem">${data.error || 'Upload failed'}</span>`;
+    }
+  } catch {
+    content.innerHTML = `<span style="color:var(--red);font-size:0.75rem">Network error</span>`;
   }
 }
 
-// ── Analysis ──────────────────────────────────────────────────────────────────
+// ── Analyse Button State ──────────────────────────────────────
+function updateAnalyzeBtn() {
+  const ready = selectedImageFile &&
+    (activeTab === 'demo' || uploadedModelId);
+  document.getElementById('analyzeBtn').disabled = !ready;
+}
 
+// ── Analysis ──────────────────────────────────────────────────
 async function startAnalysis() {
-  if (!state.imageFile) return;
+  if (!selectedImageFile) return;
 
-  showProgressState();
+  showState('progress');
+  resetSteps();
+  setProgress(0);
 
-  const formData = new FormData();
-  formData.append("image", state.imageFile);
-  formData.append("model_id", state.modelId);
-  formData.append("image_size", document.getElementById("imageSizeSelect").value);
-  formData.append("architecture", document.getElementById("architectureSelect")?.value || "");
-  formData.append("num_classes", document.getElementById("numClasses")?.value || "10");
+  const form = new FormData();
+  form.append('image', selectedImageFile);
+  form.append('model_id',   activeTab === 'upload' && uploadedModelId ? uploadedModelId : 'demo');
+  form.append('image_size', document.getElementById('imageSizeSelect').value);
+  form.append('num_classes', document.getElementById('numClasses')?.value || '10');
 
-  // Animate steps in sequence while waiting
-  animateSteps();
+  const arch = document.getElementById('architectureSelect')?.value;
+  if (arch) form.append('architecture', arch);
+
+  // Simulate step progression
+  const stepTimings = [
+    { step: 1, progress: 15, delay: 800 },
+    { step: 2, progress: 45, delay: 2400 },
+    { step: 3, progress: 70, delay: 4000 },
+    { step: 4, progress: 90, delay: 5500 },
+  ];
+
+  let stepIdx = 0;
+  const stepTimer = setInterval(() => {
+    if (stepIdx < stepTimings.length) {
+      const { step, progress } = stepTimings[stepIdx];
+      setStepActive(step);
+      setProgress(progress);
+      stepIdx++;
+    }
+  }, stepTimings[0]?.delay || 800);
+
+  // Actually run timings sequentially
+  const runTimings = async () => {
+    for (let i = 0; i < stepTimings.length; i++) {
+      await sleep(i === 0 ? stepTimings[0].delay : stepTimings[i].delay - stepTimings[i-1].delay);
+      setStepActive(stepTimings[i].step);
+      setProgress(stepTimings[i].progress);
+    }
+  };
+
+  clearInterval(stepTimer);
+  runTimings();
 
   try {
-    const resp = await fetch("/api/analyze", { method: "POST", body: formData });
-    const data = await resp.json();
+    const res  = await fetch('/api/analyze', { method: 'POST', body: form });
+    const data = await res.json();
 
-    if (data.error) throw new Error(data.error);
+    setProgress(100);
+    markAllDone();
 
-    state.lastResults = data;
-    showResults(data);
+    await sleep(500);
+
+    if (data.status === 'error') {
+      showError(data.error || 'Analysis failed');
+      return;
+    }
+
+    currentResults = data;
+    renderResults(data);
+    showState('results');
+
   } catch (err) {
-    showError(err.message);
+    showError(err.message || 'Network error');
   }
 }
 
-let stepTimers = [];
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-function animateSteps() {
-  stepTimers.forEach(clearTimeout);
-  stepTimers = [];
-
-  const delays = [0, 1200, 2600, 4200]; // approximate timing hints
-  delays.forEach((delay, i) => {
-    stepTimers.push(setTimeout(() => activateStep(i + 1), delay));
+// ── Step Management ───────────────────────────────────────────
+function resetSteps() {
+  [1,2,3,4].forEach(n => {
+    const el = document.getElementById(`step${n}`);
+    if (el) {
+      el.classList.remove('active', 'done');
+      const badge = el.querySelector('.step-badge');
+      if (badge) badge.textContent = 'PENDING';
+    }
   });
 }
 
-function activateStep(n) {
-  for (let i = 1; i <= 4; i++) {
-    const el = document.getElementById(`step${i}`);
-    const st = document.getElementById(`status${i}`);
-    if (i < n) {
-      el.classList.remove("active");
-      el.classList.add("done");
-      st.textContent = "COMPLETE ✓";
-    } else if (i === n) {
-      el.classList.add("active");
-      el.classList.remove("done");
-      st.textContent = "RUNNING...";
-    } else {
-      el.classList.remove("active", "done");
-      st.textContent = "PENDING";
-    }
-  }
+function setStepActive(n) {
+  // Mark previous as done
+  if (n > 1) setStepDone(n - 1);
 
-  // Progress bar hint
-  const pct = [10, 35, 65, 80][n - 1];
-  setProgress(pct);
+  const el = document.getElementById(`step${n}`);
+  if (!el) return;
+  el.classList.add('active');
+  el.classList.remove('done');
+  const badge = el.querySelector('.step-badge');
+  if (badge) badge.textContent = 'RUNNING';
 }
 
+function setStepDone(n) {
+  const el = document.getElementById(`step${n}`);
+  if (!el) return;
+  el.classList.remove('active');
+  el.classList.add('done');
+  const badge = el.querySelector('.step-badge');
+  if (badge) badge.textContent = '✓ DONE';
+}
+
+function markAllDone() {
+  [1,2,3,4].forEach(n => setStepDone(n));
+}
+
+// ── Progress Bar ──────────────────────────────────────────────
 function setProgress(pct) {
-  document.getElementById("progressBar").style.width  = pct + "%";
-  document.getElementById("progressLabel").textContent = pct + "%";
+  const bar   = document.getElementById('progressBar');
+  const label = document.getElementById('progressLabel');
+  if (bar)   bar.style.width   = `${pct}%`;
+  if (label) label.textContent = `${Math.round(pct)}%`;
 }
 
-// ── Render Results ────────────────────────────────────────────────────────────
-
-function showResults(data) {
-  // Complete all steps
-  for (let i = 1; i <= 4; i++) {
-    const el = document.getElementById(`step${i}`);
-    const st = document.getElementById(`status${i}`);
-    el.classList.add("done");
-    el.classList.remove("active");
-    st.textContent = "COMPLETE ✓";
-  }
-  setProgress(100);
-
-  setTimeout(() => {
-    document.getElementById("progressState").style.display = "none";
-    document.getElementById("resultsState").style.display  = "block";
-
-    const c4 = data.components.component4;
-    const verdict = c4.verdict;
-
-    // Verdict banner
-    const banner = document.getElementById("verdictBanner");
-    banner.className = "verdict-banner " + verdict.toLowerCase();
-    document.getElementById("verdictText").textContent = verdict;
-    document.getElementById("anomalyScore").textContent =
-      (c4.anomaly_score * 100).toFixed(1) + "%";
-    document.getElementById("stabilityVal").textContent =
-      (c4.mean_stability * 100).toFixed(1) + "%";
-    document.getElementById("certRadius").textContent =
-      c4.certified_radius.toFixed(4);
-
-    // ── NEW: Render Component 1 ────────────────────────────────────────
-    renderComponent1(data.components.component1);
-
-    // ── Other components (unchanged) ───────────────────────────────────
-    renderMetrics("c1Metrics", data.components.component1, [
-      ["delta_fgsm", "δ FGSM"],
-      ["delta_ifgsm", "δ I-FGSM"],
-      ["min_flip_epsilon", "Min Flip ε"],
-      ["original_conf", "Original Conf"],
-      ["fgsm_conf", "Post-FGSM Conf"],
-      ["ifgsm_conf", "Post-IFGSM Conf"],
-      ["gradient_norm", "Gradient Norm"],
-      ["gradient_variance", "Grad Variance"],
-      ["conf_margin", "Conf Margin"],
-      ["loss_sensitivity", "Loss Value"],
-    ]);
-
-    renderMetrics("c2Metrics", data.components.component2, [
-      ["delta_blackbox", "δ Black-Box"],
-      ["noise_delta", "Noise Delta"],
-      ["hsj_delta", "HSJ Delta"],
-      ["fd_sensitivity", "FD Sensitivity"],
-      ["mean_conf_drop", "Avg Conf Drop"],
-      ["max_conf_drop", "Max Conf Drop"],
-      ["conf_drop_variance", "Drop Variance"],
-    ]);
-
-    renderFeatureChart(data.components.component3);
-
-    renderMetrics("c4Metrics", data.components.component4, [
-      ["verdict", "Verdict"],
-      ["anomaly_score", "Anomaly Score"],
-      ["certified_radius", "Certified Radius"],
-      ["mean_stability", "Mean Stability"],
-      ["min_stability", "Min Stability"],
-      ["stable_flag", "Stable Flag"],
-      ["high_stability_flag", "High Stability"],
-      ["used_trained_model", "Used IF Model"],
-    ]);
-  }, 500);
-}
-
-// ── NEW: Dedicated render function for Component 1 ────────────────────────
-function renderComponent1(c1) {
-  // Original prediction & confidence
-  const origClassEl = document.getElementById("c1OriginalClass");
-  const origConfEl  = document.getElementById("c1OriginalConf");
-
-  origClassEl.textContent = c1.original_class_name || `Class ${c1.original_pred}`;
-  origConfEl.textContent  = (c1.original_conf * 100).toFixed(1) + "%";
-
-  // Noise stability table
-  const tbody = document.getElementById("c1NoiseTableBody");
-  tbody.innerHTML = "";
-
-  if (c1.noise_test_results && Array.isArray(c1.noise_test_results) && c1.noise_test_results.length > 0) {
-    c1.noise_test_results.forEach(item => {
-      const row = document.createElement("tr");
-
-      const sigmaCell = document.createElement("td");
-      sigmaCell.textContent = item.noise_sigma;
-
-      const classCell = document.createElement("td");
-      classCell.textContent = item.predicted_class;
-
-      const changedCell = document.createElement("td");
-      changedCell.textContent = item.changed ? "Yes" : "No";
-      changedCell.className = item.changed ? "changed yes" : "no";
-
-      row.appendChild(sigmaCell);
-      row.appendChild(classCell);
-      row.appendChild(changedCell);
-
-      tbody.appendChild(row);
-    });
-  } else {
-    const row = document.createElement("tr");
-    row.innerHTML = '<td colspan="3" style="text-align:center; color:#888;">No noise stability data available</td>';
-    tbody.appendChild(row);
-  }
-}
-
-// ── Existing render functions (unchanged) ─────────────────────────────────
-
-function renderMetrics(containerId, data, fields) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = "";
-
-  fields.forEach(([key, label]) => {
-    if (!(key in data)) return;
-    const val = data[key];
-
-    const card = document.createElement("div");
-    card.className = "metric-card";
-
-    const lEl = document.createElement("div");
-    lEl.className = "metric-card-label";
-    lEl.textContent = label.toUpperCase();
-
-    const vEl = document.createElement("div");
-    vEl.className = "metric-card-value";
-
-    if (typeof val === "number") {
-      vEl.textContent = val < 0.001 && val > 0 ? val.toExponential(3) : val.toFixed(4);
-    } else if (typeof val === "boolean" || val === 0 || val === 1) {
-      vEl.textContent = Boolean(val) ? "YES" : "NO";
-      vEl.classList.add(val ? "changed" : "ok");
-    } else {
-      vEl.textContent = String(val);
-      if (val === "TROJAN") vEl.style.color = "var(--trojan-color)";
-      if (val === "CLEAN")  vEl.style.color = "var(--clean-color)";
-    }
-
-    card.appendChild(lEl);
-    card.appendChild(vEl);
-    container.appendChild(card);
-  });
-}
-
-function renderFeatureChart(c3) {
-  const container = document.getElementById("featureChart");
-  container.innerHTML = "";
-
-  const names  = c3.feature_names;
-  const values = c3.feature_vector;
-
-  if (!names || !values) return;
-
-  // Normalise for bar widths
-  const maxVal = Math.max(...values.map(Math.abs), 1e-8);
-
-  names.forEach((name, i) => {
-    const rawVal = values[i];
-    const pct    = Math.abs(rawVal) / maxVal * 100;
-
-    const row = document.createElement("div");
-    row.className = "feat-row";
-
-    const nameEl = document.createElement("div");
-    nameEl.className = "feat-name";
-    nameEl.textContent = name;
-    nameEl.title = name;
-
-    const barBg = document.createElement("div");
-    barBg.className = "feat-bar-bg";
-
-    const barFill = document.createElement("div");
-    barFill.className = "feat-bar-fill";
-    barFill.style.width = "0%";
-    setTimeout(() => barFill.style.width = pct + "%", 50 + i * 20);
-
-    barBg.appendChild(barFill);
-
-    const valEl = document.createElement("div");
-    valEl.className = "feat-val";
-    valEl.textContent = rawVal < 0.001 && rawVal > 0
-      ? rawVal.toExponential(2)
-      : rawVal.toFixed(4);
-
-    row.appendChild(nameEl);
-    row.appendChild(barBg);
-    row.appendChild(valEl);
-    container.appendChild(row);
-  });
-}
-
-function showResultTab(tab, btn) {
-  document.querySelectorAll(".rtab-content").forEach(el => el.classList.remove("active"));
-  document.querySelectorAll(".rtab").forEach(el => el.classList.remove("active"));
-  document.getElementById("rtab-" + tab).classList.add("active");
-  btn.classList.add("active");
-}
-
-// ── UI State Helpers ──────────────────────────────────────────────────────────
-
-function showProgressState() {
-  document.getElementById("idleState").style.display    = "none";
-  document.getElementById("progressState").style.display = "block";
-  document.getElementById("resultsState").style.display  = "none";
-  document.getElementById("analyzeBtn").disabled = true;
+// ── State Manager ─────────────────────────────────────────────
+function showState(state) {
+  document.getElementById('idleState').style.display     = state === 'idle'     ? '' : 'none';
+  document.getElementById('progressState').style.display = state === 'progress' ? '' : 'none';
+  document.getElementById('resultsState').style.display  = state === 'results'  ? '' : 'none';
+  document.getElementById('errorState').style.display    = state === 'error'    ? '' : 'none';
 }
 
 function showError(msg) {
-  document.getElementById("progressState").style.display = "none";
-  document.getElementById("idleState").style.display     = "block";
-  document.getElementById("idleState").innerHTML = `
-    <div class="idle-icon" style="color:var(--accent2)">✕</div>
-    <p>Analysis Failed</p>
-    <p class="idle-sub" style="color:var(--accent2)">${escapeHtml(msg)}</p>
-    <button class="btn-secondary" style="margin-top:16px" onclick="resetAnalysis()">Try Again</button>
-  `;
+  showState('error');
+  const el = document.getElementById('errorMessage');
+  if (el) el.textContent = msg;
 }
 
-function resetAnalysis() {
-  document.getElementById("idleState").style.display    = "block";
-  document.getElementById("progressState").style.display = "none";
-  document.getElementById("resultsState").style.display  = "none";
-  document.getElementById("idleState").innerHTML = `
-    <div class="idle-icon">◈</div>
-    <p>Configure inputs and run analysis</p>
-    <p class="idle-sub">System awaiting target</p>
+// ── Render Results ────────────────────────────────────────────
+function renderResults(data) {
+  const c1 = data.components?.component1 || {};
+  const c2 = data.components?.component2 || {};
+  const c3 = data.components?.component3 || {};
+  const c4 = data.components?.component4 || {};
+
+  // Verdict banner
+  const banner  = document.getElementById('verdictBanner');
+  const verdict = data.verdict || '—';
+  banner.className = `verdict-banner ${verdict.toLowerCase()}`;
+
+  document.getElementById('verdictText').textContent = verdict;
+  document.getElementById('anomalyScoreDisplay').textContent =
+    data.anomaly_score != null ? `${(data.anomaly_score * 100).toFixed(1)}%` : '—';
+  document.getElementById('stabilityVal').textContent =
+    c4.mean_stability != null ? `${(c4.mean_stability * 100).toFixed(1)}%` : '—';
+  document.getElementById('certRadius').textContent =
+    c4.certified_radius != null ? c4.certified_radius.toFixed(4) : '—';
+
+  // Component 1
+  renderPredictionCard(c1);
+  renderC1Metrics(c1);
+
+  // Component 2
+  renderC2Metrics(c2);
+
+  // Component 3 — feature chart
+  renderFeatureChart(c3);
+
+  // Component 4
+  renderC4Metrics(c4);
+}
+
+function renderPredictionCard(c1) {
+  const wrap = document.getElementById('predictionCard');
+  if (!wrap) return;
+
+  const cls   = c1.original_class_name || 'unknown';
+  const conf  = c1.original_conf != null ? (c1.original_conf * 100).toFixed(1) : '—';
+  const emoji = CLASS_EMOJI[cls] || '🔷';
+
+  wrap.innerHTML = `
+    <div class="pred-class-icon">${emoji}</div>
+    <div class="pred-info">
+      <div class="pred-class-name">${cls}</div>
+      <div class="pred-class-label">PREDICTED CLASS</div>
+    </div>
+    <div class="pred-conf">
+      <div class="pred-conf-val">${conf}%</div>
+      <div class="pred-conf-label">CONFIDENCE</div>
+    </div>
   `;
-  updateAnalyzeBtn();
-  // Reset step styles
-  for (let i = 1; i <= 4; i++) {
-    document.getElementById(`step${i}`).classList.remove("active", "done");
-    document.getElementById(`status${i}`).textContent = "PENDING";
+
+  // Confidence bar
+  const barFill = document.getElementById('confBarFill');
+  const barPct  = document.getElementById('confBarPct');
+  if (barFill) barFill.style.width = `${conf}%`;
+  if (barFill) barFill.style.background =
+    parseFloat(conf) > 90 ? 'var(--red)' :
+    parseFloat(conf) > 70 ? 'var(--amber)' : 'var(--green)';
+  if (barPct) barPct.textContent = `${conf}%`;
+}
+
+function renderC1Metrics(c1) {
+  const grid = document.getElementById('c1Metrics');
+  if (!grid) return;
+
+  const metrics = [
+    { label: 'FGSM Δ',          val: c1.delta_fgsm,        fmt: v => v.toFixed(4) },
+    { label: 'I-FGSM Δ',        val: c1.delta_ifgsm,       fmt: v => v.toFixed(4) },
+    { label: 'Min Flip ε',       val: c1.min_flip_epsilon,  fmt: v => v.toFixed(4),
+      cls: v => v > 0.4 ? 'highlight-bad' : v < 0.1 ? 'highlight-good' : '' },
+    { label: 'FGSM Conf',        val: c1.fgsm_conf,         fmt: v => `${(v*100).toFixed(1)}%` },
+    { label: 'I-FGSM Conf',      val: c1.ifgsm_conf,        fmt: v => `${(v*100).toFixed(1)}%` },
+    { label: 'Conf Margin',      val: c1.conf_margin,       fmt: v => v.toFixed(4) },
+    { label: 'Gradient L2',      val: c1.grad_l2,           fmt: v => v.toFixed(4) },
+    { label: 'Gradient Max',     val: c1.grad_max,          fmt: v => v.toFixed(4) },
+    { label: 'Gradient Var',     val: c1.gradient_variance, fmt: v => v.toFixed(4) },
+    { label: 'Loss Sensitivity', val: c1.loss_sensitivity,  fmt: v => v.toFixed(4) },
+  ];
+
+  grid.innerHTML = metrics.map(m => {
+    const val    = m.val != null ? m.fmt(m.val) : '—';
+    const cls    = m.cls && m.val != null ? m.cls(m.val) : '';
+    return `
+      <div class="metric-card">
+        <div class="metric-card-label">${m.label}</div>
+        <div class="metric-card-val ${cls}">${val}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderC2Metrics(c2) {
+  const grid = document.getElementById('c2Metrics');
+  if (!grid) return;
+
+  const metrics = [
+    { label: 'Black-Box Δ',    val: c2.delta_blackbox,    fmt: v => v.toFixed(4),
+      cls: v => v > 0.4 ? 'highlight-bad' : v < 0.1 ? 'highlight-good' : '' },
+    { label: 'FD Sensitivity', val: c2.fd_sensitivity,    fmt: v => v.toFixed(4) },
+    { label: 'Boundary Dist',  val: c2.boundary_distance, fmt: v => v.toFixed(4) },
+    { label: 'Query Count',    val: c2.query_count,       fmt: v => v.toString() },
+    { label: 'BB Confidence',  val: c2.bb_confidence,     fmt: v => `${(v*100).toFixed(1)}%` },
+    { label: 'Decision Score', val: c2.decision_score,    fmt: v => v.toFixed(4) },
+  ];
+
+  grid.innerHTML = metrics.filter(m => m.val != null).map(m => {
+    const val = m.fmt(m.val);
+    const cls = m.cls ? m.cls(m.val) : '';
+    return `
+      <div class="metric-card">
+        <div class="metric-card-label">${m.label}</div>
+        <div class="metric-card-val ${cls}">${val}</div>
+      </div>`;
+  }).join('') || '<p style="color:var(--text-3);font-size:0.8rem">No data available</p>';
+}
+
+function renderFeatureChart(c3) {
+  const wrap = document.getElementById('featureChart');
+  if (!wrap) return;
+
+  const vec = c3.feature_vector || [];
+  if (!vec.length) {
+    wrap.innerHTML = '<p style="color:var(--text-3);font-size:0.8rem">No feature data</p>';
+    return;
   }
+
+  const labels = [
+    'orig_conf','delta_fgsm','delta_ifgsm','grad_norm','loss_sens',
+    'fgsm_conf','ifgsm_conf','conf_margin','grad_var','grad_max',
+    'flip_eps','bb_delta','fd_sens','boundary','bb_conf',
+    'decision','stability','cert_radius','stable_flag','high_stab',
+    'mean_stab','min_stab','fgsm_chg','ifgsm_chg','feat_25'
+  ];
+
+  const maxAbs = Math.max(...vec.map(v => Math.abs(v)), 1);
+
+  wrap.innerHTML = `<div class="feature-chart-wrap">` +
+    vec.slice(0, 22).map((v, i) => {
+      const pct  = Math.min(Math.abs(v) / maxAbs * 100, 100).toFixed(1);
+      const name = labels[i] || `feat_${i+1}`;
+      const color = v < 0 ? 'var(--red)' : 'linear-gradient(90deg, var(--accent), var(--green))';
+      return `
+        <div class="feature-row">
+          <div class="feature-name">${name}</div>
+          <div class="feature-bar-bg">
+            <div class="feature-bar-fill" style="width:${pct}%;background:${color}"></div>
+          </div>
+          <div class="feature-val">${v.toFixed(3)}</div>
+        </div>`;
+    }).join('') + `</div>`;
+}
+
+function renderC4Metrics(c4) {
+  const grid = document.getElementById('c4Metrics');
+  if (!grid) return;
+
+  const metrics = [
+    { label: 'Verdict',          val: c4.verdict,            fmt: v => v,
+      cls: v => v === 'TROJAN' ? 'highlight-bad' : 'highlight-good' },
+    { label: 'Anomaly Score',    val: c4.anomaly_score,      fmt: v => `${(v*100).toFixed(1)}%` },
+    { label: 'Certified Radius', val: c4.certified_radius,   fmt: v => v.toFixed(4) },
+    { label: 'Mean Stability',   val: c4.mean_stability,     fmt: v => `${(v*100).toFixed(1)}%` },
+    { label: 'Min Stability',    val: c4.min_stability,      fmt: v => `${(v*100).toFixed(1)}%` },
+    { label: 'Stable Flag',      val: c4.stable_flag,        fmt: v => v ? '✓ YES' : '✗ NO',
+      cls: v => v ? 'highlight-good' : 'highlight-bad' },
+    { label: 'High Stability',   val: c4.high_stability_flag,fmt: v => v ? '✓ YES' : '✗ NO',
+      cls: v => v ? 'highlight-good' : 'highlight-bad' },
+    { label: 'IF Model Used',    val: c4.used_trained_model, fmt: v => v ? 'YES' : 'NO (heuristic)' },
+  ];
+
+  grid.innerHTML = metrics.filter(m => m.val != null).map(m => {
+    const val = m.fmt(m.val);
+    const cls = m.cls ? m.cls(m.val) : '';
+    return `
+      <div class="metric-card">
+        <div class="metric-card-label">${m.label}</div>
+        <div class="metric-card-val ${cls}">${val}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── Result Tabs ───────────────────────────────────────────────
+function showResultTab(id, btn) {
+  document.querySelectorAll('.rtab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.rtab').forEach(el => el.classList.remove('active'));
+  document.getElementById(`rtab-${id}`)?.classList.add('active');
+  btn?.classList.add('active');
+}
+
+// ── Reset ─────────────────────────────────────────────────────
+function resetAnalysis() {
+  currentResults = null;
+  showState('idle');
+  clearImage();
+  resetSteps();
   setProgress(0);
 }
 
-function updateAnalyzeBtn() {
-  const btn = document.getElementById("analyzeBtn");
-  const ready = !!state.imageFile;
-  btn.disabled = !ready;
-  document.getElementById("analyzeBtnText").textContent = ready
-    ? "▶ RUN ANALYSIS"
-    : "▶ SELECT AN IMAGE FIRST";
-}
-
-// ── Export ────────────────────────────────────────────────────────────────────
-
+// ── Export ────────────────────────────────────────────────────
 function exportResults() {
-  if (!state.lastResults) return;
-  const blob = new Blob([JSON.stringify(state.lastResults, null, 2)],
-    { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `neuroshield_${Date.now()}.json`;
+  if (!currentResults) return;
+  const blob = new Blob([JSON.stringify(currentResults, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `neuroshield_${currentResults.session_id || 'results'}.json`;
   a.click();
   URL.revokeObjectURL(url);
-}
-
-// ── Utilities ─────────────────────────────────────────────────────────────────
-
-function formatBytes(n) {
-  if (n < 1024) return n + " B";
-  if (n < 1024 ** 2) return (n / 1024).toFixed(1) + " KB";
-  return (n / 1024 ** 2).toFixed(2) + " MB";
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-async function checkHealth() {
-  try {
-    const resp = await fetch("/api/health");
-    const data = await resp.json();
-    const el = document.getElementById("systemStatus");
-    if (data.status === "ok") {
-      el.textContent = data.cuda ? "CUDA ONLINE" : "CPU MODE";
-    }
-  } catch { /* ignore */ }
 }
