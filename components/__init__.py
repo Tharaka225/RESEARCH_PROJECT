@@ -1,1 +1,0 @@
-# NeuroShield components package
